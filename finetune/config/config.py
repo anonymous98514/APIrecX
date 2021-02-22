@@ -31,5 +31,6 @@ def arg_config():
     parser.add_argument("--sub_mode", type=str, default="train")
     parser.add_argument("--is_save", type=bool, default=False)
     parser.add_argument("--info", type=str, default="info")
+    parser.add_argument("--domain", type=str, default="jdbc")
     args = parser.parse_args()
     return args

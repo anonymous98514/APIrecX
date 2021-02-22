@@ -73,25 +73,21 @@ class Classifier:
             word_acc = 0
             # word_num = 0
             start_time = datetime.datetime.now()
-            # 让模型进入训练模式
             self.model.train()
             print("start train")
             # print(len(train_data))
             for onebatch in get_batch_train(train_data, self.args.batch_size, arg, train_batch_len):
                 words, tags, mask, seq_lengths = batch_numberize(onebatch, args_device, arg)
-                # print(words)
-                # print(words.shape)
-                # for i in range(words.shape[0]):
-                #     print (words[i])
+
                 targets = words[:, 1:].contiguous()
 
                 pred = self.model(words)
                 pred = pred[:, :-1].contiguous()
-                # 反向传播，计算误差
+
                 loss = self.compuate_loss(targets.view(-1), pred.view(-1, pred.shape[-1]))
                 optimizer.zero_grad()
                 loss.backward()
-                #记得改回来
+
                 optimizer.step()
                 train_loss += loss.data.item()
                 acc_1, num = self.compuate_acc(targets.view(-1), pred.view(-1, pred.shape[-1]))
@@ -113,7 +109,7 @@ class Classifier:
             # dev_acc_list.append(dev_acc)
             if patenice > 2:
                 self.ep = self.ep - patenice
-                #     # torch.save(self.model, f="data/API/trained_model_{}_jc".format(ep+1))
+
                 break
             if dev_acc > best_acc:
                 print(dev_acc, best_acc)
@@ -124,14 +120,11 @@ class Classifier:
                 patenice += 1
                 print(patenice)
 
-            # epoch经过epoch轮，如果开发集acc没有上升或者loss没有下降，则停止训练
-            # if (ep+1)% patience == 0 and dev_acc_list[ep]< dev_acc_list[ep-patience+1]:
-            #     break
-            # print(batch_num)
-            print("[Epoch {}] train loss :{} train_acc:{} %  Time:{}  train_word_acc:{} 训练数据总数:{} 训练数据词总数:{}".format(
+
+            print("[Epoch {}] train loss :{} train_acc:{} %  Time:{}  train_word_acc:{} train data num:{} train data vocab num:{}".format(
                 ep + 1, train_loss, train_acc * 100, during_time, word_acc / train_num, train_data_num, train_num))
             print(
-                "[Epoch {}] dev loss :{} dev_acc:{} dev_word_acc:{} % 测试数据总数:{} 测试数据词总数:{} 困惑度:{}".format(ep + 1,
+                "[Epoch {}] dev loss :{} dev_acc:{} dev_word_acc:{} % train data num:{} train data vocab num:{} perplexity:{}".format(ep + 1,
                                                                                                           dev_loss,
                                                                                                           dev_acc * 100,
                                                                                                           dev_word_acc / dev_num,
@@ -139,19 +132,8 @@ class Classifier:
                                                                                                           dev_num,
                                                                                                           perplexity))
 
-            # print(train_acc_1)
-            # print(train_num)
-            # print(self.counter)
-            # print(self.next_api)
 
-            # print(self.vocab)
-        # test_acc,test_loss = self.evluate(test_data, args_device)
-        # torch.save(self.model, f="data/API/trained_model_{}_jdbc".format(-1))
-        # dev_acc, dev_loss, dev_data_num, dev_word_acc, dev_num, perplexity = self.validate(dev_data, args_device, arg,
-        #                                                                                  dev_batch_len,True)
         s = datetime.datetime.now()
-        # test_word_acc_1,test_word_acc_3,test_word_acc_5,test_word_acc_10, test_num,domain_acc_list,domain_count = self.evluate(test_data, args_device, arg, dev_batch_len, True, search_word_dict)
-        # print("test_word_acc_top1:{} test_word_acc_top3:{} test_word_acc_top5:{} test_word_acc_top10:{}".format(test_word_acc_1,test_word_acc_3,test_word_acc_5,test_word_acc_10))
         print(datetime.datetime.now() - s)
         # print(test_num)
 
@@ -298,11 +280,6 @@ class Classifier:
 
         for line_num, onebatch in enumerate(get_batch_train(dev_data, 1, arg, None)):
             batch_num += 1
-            # domain_count += onebatch[0].tags.count(1)
-            # print(onebatch[0].tags)
-            # print("*********new_seq***********")
-            # print(onebatch[0])
-            # print("".join(self.tokenizer.convert_ids_to_tokens(onebatch[0].input_ids)).replace("[BOS]","").replace("[PAD]","").replace("▁","").replace("</t>"," ").replace("[EOS]",""))
             words, tags, mask, seq_lengths = batch_numberize(onebatch, args_device, arg)
             targets = words[:, 1:].contiguous()
             if is_refine:
@@ -311,7 +288,7 @@ class Classifier:
                 pred_index_1 = 0
                 pred_index = 0
                 for word_loc, word_len in enumerate(onebatch[0].word_index):
-                    #统计domain api数量
+
                     candidate_list = []
                     bestToken_list = []
                     beam_candidate_list = []
@@ -348,19 +325,7 @@ class Classifier:
                             self.tokenizer.convert_id_to_token(targets[0, pred_index_1:pred_index_1 + 1].item()))
                         pred_index_1 += 1
                     true_api = "".join(true_token).replace("▁", "")
-                    # print(true_api)
-                    # if onebatch[0].tags[word_loc] == 1:
-                    #     # new_num += 1
-                    #     domain_count += 1
-                    #     dev_num += 1
-                    #     c_api_counter.add(true_api)
-                    #     # continue
-                    # else:
-                    #     # if true_api.find(".new") != -1:
-                    #     continue
-                    #     else:
-                    #         dev_num += 1
-                    #         domain_count += 1
+
                     if true_api.find(".new") != -1:
                         if onebatch[0].tags[word_loc] == 1:
                             new_num += 1
@@ -385,15 +350,14 @@ class Classifier:
 
                     append_info = [[words[0, pred_index].item(), 1]]
 
-                    # true_test_seq.append("".join(true_token).replace("▁",""))
+
                     while ((tokensDone <= 5000) and hope):
                         iter += 1
-                        is_end_num = 0
-                        remove_list = []
+
                         if len(beam_candidate_list) > 1:
                             if count >= k:
                                 break
-                            # singel_word_pred = torch.FloatTensor(1, self.tokenizer.vocab_size).zero_().to(args_device)
+
                             for i in range(len(beam_candidate_list)):
                                 if pred_index+ len(beam_candidate_list[i].pre_ids)>= 512:
                                     print("over the limit")
@@ -407,7 +371,7 @@ class Classifier:
                                 subword_pro_order = torch.argsort(singel_word_pred, dim=1, descending=True)[0][:beam_size]
 
                                 for pred_subword in subword_pro_order:
-                                    # print(pred_subword)
+
                                     if self.tokenizer.convert_id_to_token(pred_subword.item()).find("</t>") != -1 or self.tokenizer.convert_id_to_token(pred_subword.item()) in reject_token:
                                         # print('-------------')
                                         if self.tokenizer.convert_id_to_token(pred_subword.item()) in reject_token:
@@ -436,81 +400,52 @@ class Classifier:
                                                                             beam_candidate_list[i].pro *
                                                                             singel_word_pred[0][
                                                                                 pred_subword.item()].item()))
-                                        # token_pro_sum += beam_candidate_list[i].pro * singel_word_pred[0][pred_subword.item()].item()
+
                                         bestToken_list = sorted(bestToken_list, key=lambda x: x.pro, reverse=True)
 
                                         if len(bestToken_list) > k :
                                             bestToken_list.pop(-1)
 
                                     else:
-                                        # if self.tokenizer.convert_id_to_token(pred_subword.item()) in reject_token:
-                                        #     # print("end-end")
-                                        #     # print(self.tokenizer.convert_id_to_token(pred_subword.item()))
-                                        #     continue
+
                                         update_list = [index for index in beam_candidate_list[i].pre_ids]
                                         update_list.append(pred_subword.item())
                                         candidate_list.append(Candidate(update_list,
                                                                         beam_candidate_list[i].pro * singel_word_pred[0][
                                                                             pred_subword.item()].item(), False))
-                                        # del update_list
-                                        # print("candidate_list_len:",len(candidate_list))
-                                        # print(pred_subword.item())
-                                        # print(candidate_list[i].pre_ids.append(candidate_list[i].pre_ids))
-                                        # print(candidate_list[i].pre_ids.append(pred_subword.item()))
 
-                                        # candidate_list[i].pro = candidate_list[i].pro * singel_word_pred[0][subword_pro_order[pred_subword.item()]]
-                                        # candidate_list[i].pre_ids.append(pred_subword.item())
-                            # for i, data in enumerate(bestToken_list):
-                            #     print("top:{}".format(i))
-                            #     print("".join(
-                            #         [self.tokenizer.convert_id_to_token(index) for index in data.pre_ids]).replace(
-                            #         "[PAD]", "").replace("[EOS]", "").replace("▁", ""))
-                            # 从候选列表中移除已经扩展为完整token的候选非token
-                            # for i in reversed(list(set(remove_list))):
-                            #     candidate_list.pop(i)
-                            # print("candidate_len:", len(candidate_list))
                             candidate_list = sorted(candidate_list, key=lambda x: x.pro, reverse=True)
-                            # for i in  range(5):
-                            #     print("top{}:".format(i),candidate_list[i].pre_ids,candidate_list[i].pro)
+
                             token_pro_sum = sum([token.pro for token in bestToken_list])
                             if len(bestToken_list) >= 1 and len(candidate_list) != 0:
                                 if candidate_list[0].pro < bestToken_list[-1].pro:
                                     hope = False
-                            # print("candidate_len:", len(candidate_list))
+
                             if len(candidate_list) < beam_size:
                                 print (len(candidate_list))
                                 for i in range(len(candidate_list), 0, -1):
-                                    # print(beam_candidate_list[i].pre_ids)
-                                    # print("hahahahahahahha")
+
                                     beam_candidate_list[i - 1] = candidate_list.pop(i - 1)
                             else:
                                 for i in range(beam_size,0,-1):
-                                    # print(beam_candidate_list[i].pre_ids)
-                                    # print("hahahahahahahha")
+
                                     beam_candidate_list[i-1] = candidate_list.pop(i-1)
 
                         else:
                             cur_word[0, pred_index] = append_info[0][0]
                             currt_pred = self.model(cur_word[0:1, :])
-                            # currt_pred = F.softmax(currt_pred, dim=1)
-                            # shape[b,s,v]
-                            # print(k)
-
                             init_candidate_list, init_bestTokens = self.compuate_acc_2(
                                 currt_pred[0, pred_index:pred_index + 1, :], append_info, k, reject_token,search_word_dict,class_name_var,appendControlNodesStrings,beam_size=beam_size)
                             candidate_list = [data for data in init_candidate_list]
                             bestToken_list =[data for data in init_bestTokens]
                             beam_candidate_list = [data for data in init_candidate_list]
-                            # token_pro_sum = sum([token.pro for token in bestToken_list])
+
                             if len(bestToken_list) >= 1 and len(candidate_list) != 0:
                                 if candidate_list[0].pro < bestToken_list[-1].pro:
                                     hope = False
-                            # print(hope)
-                            # bestToken_list = []
-                            # if class_name_var == "":
-                            #     break
+
                             pred_index += 1
-                            # print(len(candidate_list))
+
                             for i in range(beam_size,0,-1):
                                 candidate_list.pop(i-1)
                     final_result = []
@@ -520,10 +455,9 @@ class Classifier:
 
                     bestToken_list = sorted(bestToken_list, key=lambda x: x.pro, reverse=True)
                     for best_token in bestToken_list[:10]:
-                        # print("".join([self.tokenizer.convert_id_to_token(index) for index in best_token.pre_ids]).replace("▁", ""))
+
                         final_result.append(class_name_var+"".join([self.tokenizer.convert_id_to_token(index) for index in best_token.pre_ids]).replace("▁", "").replace("</t>","").replace("[EOS]","").replace("[UNK]","").replace("[PAD]",""))
-                        # final_result_check.append("".join(
-                        #     [self.tokenizer.convert_id_to_token(index) for index in best_token.pre_ids]))
+
                         final_result_check.append(best_token.pro)
                         final_class_result.append("".join(
                             [self.tokenizer.convert_id_to_token(index) for index in best_token.pre_ids]).replace("▁",
@@ -537,26 +471,13 @@ class Classifier:
                         dev_word_acc_top1 += 1
                         if onebatch[0].tags[word_loc] == 1:
                             dev_word_acc_class_1 += 1
-                    # if true_api.replace("</t>","").split(".")[0] in final_class_result[:1]:
-                    #     dev_word_acc_class_1 += 1
+
                     else:
                         if true_api.replace("</t>","") not in appendControlNodesStrings:
                             pass
-                            # m = len(bestToken_list[0].pre_ids)
-                            # top1_len[m] += 1
-                            # top1_ground_true_len[method_len] += 1
-                            # if m < method_len:
-                            #     length_pro += 1
-                            # elif m > method_len:
-                            #     length_pro_1 += 1
-                            # elif m == method_len:
-                            #     length_pro_2 += 1
-                            # try:
-                            #     top1_len_info[final_result.index(true_api.replace("</t>",""))] += 1
-                            # except:
-                            #     top1_len_info[11] += 1
+
                         else:
-                            #未在top1的control node的数量
+
                             control_node += 1
                             pass
                     if true_api.replace("</t>","") in final_result[:3]:
@@ -565,22 +486,11 @@ class Classifier:
                             dev_word_acc_class_3 += 1
                     else:
                         m3 = 0
-                        # if true_api.replace("</t>", "") not in appendControlNodesStrings:
-                        #     for i in range(3):
-                        #         m3 += len(bestToken_list[i].pre_ids)
-                        #     m3 /= 3
-                        #     top3_len[m3] += 1
-                        #     top3_ground_true_len[method_len] += 1
-                        # else:
-                        #     pass
-                    # if true_api.replace("</t>", "").split(".")[0] in final_class_result[:3]:
-                    #     dev_word_acc_class_3 += 1
                     if true_api.replace("</t>", "") in final_result[:5]:
                         dev_word_acc_top5 += 1
                         if onebatch[0].tags[word_loc] == 1:
                             dev_word_acc_class_5 += 1
-                    # if true_api.replace("</t>", "").split(".")[0] in final_class_result[:5]:
-                    #     dev_word_acc_class_5 += 1
+
                     if true_api.replace("</t>", "") in final_result:
                         if true_api.replace("</t>", "") not in appendControlNodesStrings:
                             num_3 += 1
@@ -597,25 +507,16 @@ class Classifier:
                         if true_api.replace("</t>", "") not in appendControlNodesStrings:
                             num_1 += 1
                             if true_api_nop.replace("</t>", "") in final_result_nop:
-                                print("参数错误")
+                                pass
                             else:
                                 if onebatch[0].tags[word_loc] == 1:
                                     num_5 += 1
-                                    # print("not par error")
-                                    # print(final_result_nop)
+
 
                         else:
                             num_2 += 1
 
-                        # print("wrong predict")
-                        # print(true_api)
-                        # print(final_result)
-                        # print(final_result_check)
-                        # continue
-                        # print("wrong predict")
-                        # print(true_api)
-                        # print(final_result)
-        # domain_count -= new_num
+
         word_acc_1 = dev_word_acc_top1 / dev_num
         word_acc_3 = dev_word_acc_top3 / dev_num
         word_acc_5 = dev_word_acc_top5 / dev_num
@@ -624,22 +525,9 @@ class Classifier:
         dev_3 = dev_word_acc_class_3 / domain_count
         dev_5 = dev_word_acc_class_5 / domain_count
         dev_10 = dev_word_acc_class_10 / domain_count
-        print("非控制结构:",num_3,"控制结构",num_4)
-        print("非参数错误：",num_5)
-        print("非控制结构错误:", num_1, "控制结构错误", num_2)
+
         print("class acc: top1:{}   top3:{}    top5:{}    top10:{}".format(dev_1,dev_3,dev_5,dev_10))
-        # print(top1_len)
-        # print(top1_ground_true_len)
-        # print(top3_len)
-        # print(top3_ground_true_len)
-        # print("------------------------------")
-        # print("check reason")
-        # print(length_pro)
-        # print(length_pro_1)
-        # print(length_pro_2)
-        # print(dev_word_acc_top1 * dev_num - control_node)
-        # print(control_node)
-        # print(top1_len_info)
+
         d_api_counter = b_api_counter & c_api_counter
         print("------------------------------")
         print (dev_num)
@@ -655,31 +543,15 @@ class Classifier:
 
         return word_acc_1,word_acc_3,word_acc_5,word_acc_10, dev_num,[dev_1,dev_3,dev_5,dev_10],domain_count
 
-        # 评估模型
 
 
 
-    # 计算准确率
+
+
     def compuate_acc(self, true_tags, logit):
-        # logit = F.softmax(logit,dim=1)
-        # true_tags = true_tags[:, :1]
-        # print(true_tags.shape)
-        # print(logit.shape)
+
         correct_num = 0
-        # true_tags = true_tags[:, :1]
-        # true_tags = true_tags.squeeze(dim=1)
-        # 返回正确的item的数目,eq是返回一个矩阵，sum之后返回总数
-        # for i in range(logit.shape[0]):
-        #     if true_tags[i] in torch.argsort(logit[i], descending=True)[: 5]:
-        #         correct_num += 1
-        # true_tags = true_tags.squeeze(dim=1)
-        # if not self.model.training:
-        #     for i in range(true_tags.shape[0]):
-        #         if words[i][seq_lengths[i]-1].item() == 2:
-        #             self.next_api += 1
-        #             if torch.eq(torch.argmax(logit[i],dim=0),true_tags[i]).sum().item() == 0:
-        #                 # print(111)
-        #                 self.counter[true_tags[i].item()] += 1
+
 
         select_index = []
         for i in range(logit.shape[0]):
@@ -698,56 +570,33 @@ class Classifier:
             if true_tags[i] in torch.argsort(logit[i], descending=True)[: 2]:
                 correct_num += 1
 
-        # 返回正确的item的数目,eq是返回一个矩阵，sum之后返回总数
 
-        # return torch.eq(torch.argmax(logit, dim=1), true_tags).sum().item(), true_tags.shape[0]
-        # 返回正确的item的数目,eq是返回一个矩阵，sum之后返回总数
-        # return  torch.eq(torch.argmax(logit,dim=1),true_tags).sum().item()
         return correct_num, true_tags.shape[0]
 
     def compuate_acc_1(self, true_tags, logit):
-        # print(true_tags.shape)
-        # print(logit.shape)
+
         correct_num = 0
         select_index = []
         append_info = []
         for i in range(true_tags.shape[0]):
-            # if true_tags[i].item() != 0:
-            # prediction[i] = logit[i]
             select_index.append(i)
-        # print(select_index)
-        # if len(select_index) == 0:
-        #
-        #     return 0, 0,0
-        # print(len(select_index))
+
 
         logit = torch.index_select(logit, 0, torch.tensor(select_index).long().to(self.args.device))
         true_tags = torch.index_select(true_tags, 0, torch.tensor(select_index).long().to(self.args.device))
         logit = F.softmax(logit, dim=1)
-        # print(torch.argsort(logit[i], descending=True)[: 5])
+
         for i in range(logit.shape[0]):
             if true_tags[i].item() in torch.argsort(logit[i], descending=True)[: 5].tolist():
                 correct_num += 1
-                # if true_tags[i].item() == torch.argsort(logit[i], descending=True)[0].item():
-                #     append_info.append(true_tags[i].item())
-                # # append_info.append(torch.argsort(logit[i], descending=True)[0].item())
-                # # append_info.append(true_tags[i].item())
-                # else:
+
+
                 for i in range(self.args.boundary):
                     append_info.append(torch.argsort(logit[-1], descending=True)[i].item())
             else:
                 for i in range(self.args.boundary):
                     append_info.append(torch.argsort(logit[-1], descending=True)[i].item())
-        # if true_tags[-1] not in torch.argsort(logit[-1], descending=True)[: 5]:
-        # if len(append_info) < 5:
-        #     print(append_info)
-        #     append_info = append_info + [append_info[0]] * (5-len(append_info))
 
-        # 返回正确的item的数目,eq是返回一个矩阵，sum之后返回总数
-
-        # return torch.eq(torch.argmax(logit, dim=1), true_tags).sum().item(), true_tags.shape[0]
-        # 返回正确的item的数目,eq是返回一个矩阵，sum之后返回总数
-        # return  torch.eq(torch.argmax(logit,dim=1),true_tags).sum().item()
         return correct_num, true_tags.shape[0], append_info
 
     def compuate_acc_2(self, logit, pre_info, k, reject_token,search_dict,class_name,control_lable,beam_size,target=None):
@@ -758,11 +607,7 @@ class Classifier:
         sort = torch.argsort(logit, dim=1, descending=True)
         flag1 = False
         flag2 = False
-        # acc_num = 0
-        # print(target)
-        # print(sort[0][:5].tolist())
-        # if target in sort[0][:5].tolist():
-        #     acc_num += 1
+
 
         if len(pre_info) != 1:
             for i in range(logit.shape[0]):
@@ -776,10 +621,7 @@ class Classifier:
             for j in range(logit.shape[1]):
                 if flag1 and flag2:
                     break
-                # print(pre_info[0][1])
-                # print(logit[-1][sort[-1][j].item()])
-                # print(sort[-1][j].item())
-                # print(target)
+
                 if len(pre_candidate) < beam_size:
                     if self.tokenizer.convert_id_to_token(sort[0][j].item()).find(
                             "</t>") == -1 and self.tokenizer.convert_id_to_token(
@@ -794,7 +636,7 @@ class Classifier:
                         # print(method_name)
                         if method_name.replace("</t>", "") in control_lable:
                             bestTokens.append(BestToken([sort[0][j].item()], logit[0][sort[0][j].item()].item()))
-                        # bestTokens.append(BestToken([sort[0][j].item()], logit[0][sort[0][j].item()].item()))
+
                     else:
                         if method_name.find(
                                 "</t>") != -1 or method_name in reject_token:
@@ -806,24 +648,20 @@ class Classifier:
                                 if method_name.replace("</t>","") in search_dict[class_name]:
                                     bestTokens.append(BestToken([sort[0][j].item()], logit[0][sort[0][j].item()].item()))
                 else:
-                    # print (len(bestTokens))
-                    # print (11111)
-                    # print (flag1)
+
                     flag2 = True
 
-                    # pre_candidate.append(sort[-1][j].item() % 4000)
+
         bestTokens = sorted(bestTokens, key=lambda x: x.pro, reverse=True)
-        # print(lowest_pro)
-        # print(len(bestTokens))
+
         return pre_candidate, bestTokens
 
-    # 计算损失
+
     def compuate_loss(self, true_tags, logit):
-        # CrossEntropyLoss = LogSoftmax + NLLoss
+
         loss = nn.CrossEntropyLoss(ignore_index=self.pad_id)
         loss = loss(logit, true_tags)
-        # loss = loss(logit.view(-1, logit.shape[-1]), true_tags.view(-1))
-        # print(loss.data)
+
         return loss
 
     def is_validate(self, pred_sub_word_order, validate_class_name, search_word_dict):
@@ -836,11 +674,7 @@ class Classifier:
         for i in range(pred_sub_word_order.shape[0]):
             if flag:
                 break
-            # if validate_class_name[1] is None:
-            #     print("validate_class is none")
-            #     print(currt_api)
-            # is_complete = True
-            # break
+
             for validate_class in validate_class_name[1]:
                 if flag:
                     break
@@ -852,20 +686,16 @@ class Classifier:
                         currt_api_index = pred_sub_word_order[i].item()
                         currt_api = currt_api + self.tokenizer.convert_id_to_token(pred_sub_word_order[i].item())
                         currt_api_search_path = validate_class
-                        # if self.tokenizer.convert_id_to_token(currt_api_index).find("▁") != -1 and pred_sub_word_order[i].item() != 3927:
+
                         if self.tokenizer.convert_id_to_token(currt_api_index).find("▁") != -1:
-                            # print(pred_sub_word_order[i].item())
+
                             currt_api = currt_api.replace("▁", "")
                             is_complete = True
                         flag = True
                         break
                     else:
                         continue
-        # if currt_api_index == 0:
-        #     print()
-        # print(validate_class_name[1])
-        # print("--------------------")
-        # print(currt_api_search_path)
+
         return currt_api, is_complete, currt_api_index, currt_api_search_path
 
     def found_validate_class(self, pred_subword, all_classes, n):
@@ -873,7 +703,7 @@ class Classifier:
         refine_words = []
         # print(all_classes)
         pred_subword = self.tokenizer.convert_id_to_token(pred_subword.item()).replace("▁", "")
-        # print(pred_subword)
+
         if len(pred_subword) < 4:
             refine_api = difflib.get_close_matches(pred_subword, all_classes.keys(), 100, 0.1)
             for can_dai in refine_api:
@@ -910,7 +740,7 @@ class Classifier:
         refine_words = []
         pred = F.softmax(pred, dim=1)
         # print(true_tags.shape,pred.shape)
-        # 概率值top5
+
         for j in range(pred.shape[0]):
             true_token.append(self.tokenizer.convert_id_to_token(true_tags[j].item()).replace("▁", ""))
         for i in range(10):
@@ -943,69 +773,7 @@ class Classifier:
 
         return true_word, tokens
 
-    # def refine(self, pred, true_tags):
-    #     token = []
-    #     true_token = []
-    #     flag = False
-    #     refine_words = []
-    #
-    #     for i in range(pred.shape[0]):
-    #         # top5 = torch.argsort(pred[i], descending=True)[: 5]
-    #         token.append(self.tokenizer.convert_id_to_token(torch.argmax(pred[i]).item()).replace("▁", ""))
-    #         true_token.append(self.tokenizer.convert_id_to_token(true_tags[i].item()).replace("▁", ""))
-    #     word = "".join(token)
-    #     # tokens.append(word)
-    #     true_word = "".join(true_token)
-    #     # print(true_word)
-    #     refine_word = difflib.get_close_matches(word, self.word_vocab, 1, 0.7)
-    #     # if len(refine_word) == 0:
-    #     #     refine_words.append("null")
-    #     # else:
-    #     #     refine_words.append(refine_word[0])
-    #
-    #     # print(word, true_word, refine_word)
-    #     if len(refine_word) != 0:
-    #
-    #         if true_word == refine_word[0]:
-    #             # print(true_word,word,refine_word[0])
-    #             flag = True
-    #         else:
-    #             pass
-    #             # print(true_word,refine_word[0])
-    #     return flag
-    # def refine_for_detect(self,pred,true_tags):
-    #     appendControlNodesStrings = [
-    #         "IF", "CONDITION", "THEN", "ELSE",
-    #         "WHILE", "BODY",
-    #         "TRY", "TRYBLOCK", "CATCH", "FINALLY",
-    #         "FOR", "INITIALIZATION", "COMPARE", "UPDATE",
-    #         "FOREACH", "VARIABLE", "ITERABLE",
-    #     ]
-    #     tokens = []
-    #     true_token = []
-    #     words = []
-    #     refine_words = []
-    #     flag = False
-    #     for data in reversed(pred):
-    #         # print(data[1])
-    #         tokens.append([self.tokenizer.convert_id_to_token(ids).replace("▁","") for ids in data[0]])
-    #     for i in range(true_tags.shape[0]):
-    #         true_token.append(self.tokenizer.convert_id_to_token(true_tags[i].item()).replace("▁",""))
-    #     for token in tokens:
-    #         print("".join(token))
-    #         words.append("".join(token))
-    #     true_word_1 = "".join(true_token)
-    #     if true_word_1 in appendControlNodesStrings:
-    #         self.control_num += 1
-    #     # true_word = "".join(true_token)
-    #     for word in words:
-    #         # print(word)
-    #         try:
-    #             refine_words.append(difflib.get_close_matches(word,self.word_vocab,1,0.6)[0])
-    #         except IndexError:
-    #             refine_words.append("null")
-    #
-    #     return refine_words,true_word_1,words
+
     def refine_for_rec(self, pred):
         appendControlNodesStrings = [
             "IF", "CONDITION", "THEN", "ELSE",
@@ -1067,76 +835,7 @@ class Classifier:
 
         return top20_result
 
-    # def greedy_decoder(self,data):
-    #     # index for largest probability each row
-    #     return [argmax(s) for s in data]
 
-    # def beam_search(decoder, num_beams, max_len, *input):
-    #     """
-    #     a beam search implementation about seq2seq with attention
-    #     :param decoder:
-    #     :param num_beams: number of beam, int
-    #     :param max_len: max length of result
-    #     :param input: input of decoder
-    #     :return: list of index
-    #     """
-    #     # init
-    #     state = input[0]  # state of decoder
-    #     outputs = input[1]  # outputs of encoder
-    #     src_len = input[2]  # length of encode sequence
-    #     beams = [[[1], 1, state]]
-    #
-    #     cur_pro = 0
-    #     cur_seq = None
-    #     for i in range(max_len):
-    #         results = []
-    #         for beam in beams:
-    #             tgt = torch.LongTensor(beam[0][-1:]).unsqueeze(0).cuda()
-    #             input = [tgt, beam[2], outputs, src_len, 1]
-    #             output, state = decoder(*input)
-    #             v, i = torch.topk(output.view(-1).data, k=num_beams)
-    #             for m, n in zip(v, i):
-    #                 gen_seq = beam[0] + [n.item()]
-    #                 pro = beam[1] * m.item()
-    #                 results.append([gen_seq, pro, state])
-    #
-    #                 if n.item() == 2 and pro > cur_pro:  # eos_token = 2
-    #                     cur_pro = pro
-    #                     cur_seq = gen_seq
-    #
-    #         # filter beams
-    #         beams = []
-    #         for gen_seq, pro, state in results:
-    #             if pro > cur_pro:
-    #                 beams.append([gen_seq, pro, state])
-    #         # cut
-    #         if len(beams) > num_beams:
-    #             results = []
-    #             pros = []
-    #             for beam in beams:
-    #                 pros.append(beam[1])
-    #             pros_idx = np.array(pros).argsort()[-1 * num_beams:]
-    #             for pro_idx in pros_idx:
-    #                 results.append(beams[pro_idx])
-    #             beams = results
-    #
-    #         if len(beams) == 0:
-    #             return cur_seq
-    #
-    #     if cur_seq is not None:
-    #         return cur_seq
-    #     else:
-    #         max_pro = 0
-    #         max_seq = None
-    #         for beam in beams:
-    #             if beam[1] > max_pro:
-    #                 max_pro = beam[1]
-    #                 max_seq = beam[0]
-    #     return max_seq
-
-
-
-#     return max_seq
 
 
 

@@ -69,10 +69,7 @@ def convert_examples_to_features(examples,
             feature = ClsInputFeatures(input_ids, label_id)
 
         features.append(feature)
-    # with open("test.txt", 'w', encoding='utf-8') as f1:
-    #     for line in features_seq:
-    #         f1.write(line.strip())
-    #         f1.write("\n")
+
 
     return features
 
@@ -82,11 +79,9 @@ def create_examples(args, tokenizer, mode='train'):
 
     # Load data features from cache or dataset file
     assert mode in ('train', 'test')
-    cached_features_file = Path('cached_features_{}_{}_{}_nop_nodomain_par_clean_bpe_io_1'.format('pretrain' if args.pretrain else 'finetune', mode, args.max_seq_len))
-    cached_features_file_1 = Path('new_corpus/sample_io_1.0')
-    features_1 = torch.load(cached_features_file_1)
-    print(len(features_1))
-    print ("------------********")
+    cached_features_file = Path('cached_features_{}_{}_{}_nop_nodomain_par_clean_bpe'.format('pretrain' if args.pretrain else 'finetune', mode, args.max_seq_len))
+    # cached_features_file_1 = Path('new_corpus/sample_io_1.0')
+    # features_1 = torch.load(cached_features_file_1)
     if cached_features_file.exists():
         print('Loading features from cached file', cached_features_file)
         features = torch.load(cached_features_file)
@@ -121,19 +116,7 @@ def create_examples(args, tokenizer, mode='train'):
     #     dist.barrier()
     
     # Create dataset with features
-    # print(features[0])
-    # print(features_1[0])
-    # print(len(features_1[0].input_ids))
-    # print(len(features[0].input_ids))
-    # features = features + features_1
-    # print(len(features))
-    # print(len(features[0].input_ids))
-    # print(features_1.shape)
-    features = features + features_1
-    # features = features_1
-    # features = features[:1000]
-    # features = features[:500000]
-    print (len(features))
+
     if args.pretrain:
         all_input_ids = torch.tensor([feature.input_ids for feature in features], dtype=torch.long)
         print(all_input_ids.shape)

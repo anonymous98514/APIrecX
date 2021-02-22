@@ -15,7 +15,6 @@ def main(args):
         torch.cuda.set_device(args.local_rank)
         dist.init_process_group(backend='nccl')
         # synchronize()
-    print(dist.is_initialized())
     # Load pretrained tokenizer
     tokenizer = PretrainedTokenizer(pretrained_model=args.pretrained_sp_model, vocab_file=args.vocab_file)
     

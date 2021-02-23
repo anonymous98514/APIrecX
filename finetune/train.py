@@ -3,7 +3,7 @@ from config.config import *
 import torch
 from vocab.vocab import *
 from Classifier import *
-from data.build_train_data import *
+from build_train_data import *
 from data_utils import *
 from GPT.tokenization import *
 import random
@@ -189,15 +189,18 @@ if __name__ == '__main__':
     args = arg_config()
     # torch.cuda.maual_seed(666)
     opts = data_path_config('config/api_data_path.json')
-
-    pretrained_sp_model = "bpe_vocab/vocab_par_bpe_word.model"
-    vocab_file = "bpe_vocab/vocab_par_bpe_word.model"
+    if args.domain == "io":
+        pretrained_sp_model = "bpe_vocab/bpe_net_word.model"
+        vocab_file = "bpe_vocab/bpe_net_word.vocab"
+    else:
+        pretrained_sp_model = "bpe_vocab/vocab_par_bpe_word.model"
+        vocab_file = "bpe_vocab/vocab_par_bpe_word.vocab"
     tokenizer = PretrainedTokenizer(pretrained_model=pretrained_sp_model, vocab_file=vocab_file)
 
-    with open("data/API/data/classmethod_search_list","rb") as f3:
+    with open("data/classmethod_search_list","rb") as f3:
       search_word_dict = pickle.load(f3)
     train_data_all, project_list = create_examples(opts['data']['raw_seq_data'], tokenizer, args)
-    train_data_all_1, project_list_1 = create_examples(opts['data']['raw_seq_data_1'], tokenizer, args)
+    # train_data_all_1, project_list_1 = create_examples(opts['data']['raw_seq_data_1'], tokenizer, args)
     ACC = 0
     Perplexity = 0
     EP = 0
@@ -205,13 +208,11 @@ if __name__ == '__main__':
     dev_index = []
     train_data_sample = []
 
-    word_vocab = []
-
-    with open("refine_word_clean.txt", "r", encoding="utf-8")as f1:
-
-        for line in f1.readlines():
-    #         if i != 0:
-            word_vocab.append(line.strip())
+    # with open("refine_word_clean.txt", "r", encoding="utf-8")as f1:
+    #
+    #     for line in f1.readlines():
+    # #         if i != 0:
+    #         word_vocab.append(line.strip())
     #         i += 1
 
 
@@ -225,8 +226,11 @@ if __name__ == '__main__':
         # pretrain_gpt = torch.load("data/API/data/model_6l8h_dis.ep17")
         # pretrain_gpt = torch.load("data/API/data/model_6l8h.ep14")
         # pretrain_gpt = torch.load("data/API/data/model_6l8h_18.ep4")
-
-        pretrain_gpt = torch.load("data/API/data/model_io.ep14")
+        if args.domain == "io":
+            pretrain_gpt = torch.load("pretrain_model/model_io.ep14")
+        else:
+            pretrain_gpt = torch.load("pretrain_model/model_6l8h.ep14")
+        print ("pretrained model loaded")
         print("--------------------------------------")
         ft_model = GPTLMHead(pretrain_gpt).to(args.device)
 
@@ -257,13 +261,39 @@ if __name__ == '__main__':
         project_domain_api_word_top3 = defaultdict(list)
         project_domain_api_word_top5 = defaultdict(list)
         project_domain_api_word_top10 = defaultdict(list)
-        if domain == "jdbc":
+        if args.domain == "jdbc":
             test_project = ["pgjdbc-ng", "clickhouse4j", "StoreManager", "pgjdbc", "jdbc-recipes", "openGauss-connector-jdbc",
                           "Game-Lease", "JDBC", "SoftwareSystemOfDlpu", "starschema-bigquery-jdbc"]
-        elif domain == "swing":
+            for i, project in enumerate(test_project):
+
+                print(project)
+                for test_seq in train_data_all[project]:
+                    if 1 in test_seq.input_ids:
+
+                        continue
+                    test_data[project].append(test_seq)
+        elif args.domain == "swing":
             test_project = ["java-swing-tips", "openhospital-gui", "School-Management-System", "def-guide-to-java-swing", "pumpernickel",
                             "swingx",
                             "swingBasic", "beautyeye", "joxy-oxygen", "java2script"]
+            print(project)
+            for test_seq in train_data_all[project]:
+                if 1 in test_seq.input_ids:
+                    continue
+                test_data[project].append(test_seq)
+        elif args.domain == "io":
+            test_project = []
+            for j in range(args.k):
+                K_train_project, K_val_project = get_k_fold_data(args.k, j, project_list)
+                K_val_project_order = order_test_set(K_val_project, train_data_all)
+                for i, project in enumerate(K_val_project_order):
+                    if i == 0:
+                        print(project[0], project[1])
+                        test_project.append(project[0])
+                        for test_seq in train_data_all[project[0]]:
+                            if 1 in test_seq.input_ids:
+                                continue
+                            test_data[project[0]].append(test_seq)
         # test_project = ["StoreManager","SoftwareSystemOfDlpu", "starschema-bigquery-jdbc"]
         appendControlNodesString = [
             "IF", "CONDITION", "THEN", "ELSE",
@@ -274,48 +304,36 @@ if __name__ == '__main__':
         ]
 
 
-        pretrain_vocab = set()
-        with open("data/API/all_remove_domain_clean_token.txt", "r", encoding="utf-8")as f:
-            for line in f.readlines():
-                for subword in line.split(" "):
-                    if subword.replace("</t>", "") not in appendControlNodesString and subword != ".":
-                        pretrain_vocab.add(subword.strip().replace("</t>", ""))
+        # pretrain_vocab = set()
+        # with open("data/API/all_remove_domain_clean_token.txt", "r", encoding="utf-8")as f:
+        #     for line in f.readlines():
+        #         for subword in line.split(" "):
+        #             if subword.replace("</t>", "") not in appendControlNodesString and subword != ".":
+        #                 pretrain_vocab.add(subword.strip().replace("</t>", ""))
 
-        test_project = []
 
-        for j in range(args.k):
-            K_train_project, K_val_project = get_k_fold_data(args.k, j, project_list)
-            K_val_project_order = order_test_set(K_val_project, train_data_all)
-            for i, project in enumerate(K_val_project_order):
-                if i == 0:
-                    print(project[0], project[1])
-                    test_project.append(project[0])
-                    for test_seq in train_data_all[project[0]]:
-                        if 1 in test_seq.input_ids:
-                            continue
-                        test_data[project[0]].append(test_seq)
-        test_jdbc_vocab = set()
-        for i, project in enumerate(test_project):
-
-            print(project)
-
-            for test_seq in train_data_all[project]:
-                if 1 in test_seq.input_ids:
-                    # if project == "SwingBasic":
-                    #     print(1111)
-                    continue
-                # test_data[project].append(test_seq)
-                if project in test_project:
-                    # for seq in test_seq.input_ids:
-                    seq_len = 0
-                    for loc, word_len in enumerate(test_seq.word_index):
-                        for _ in range(word_len):
-                            vocab = tokenizer.convert_id_to_token(test_seq.input_ids[seq_len]).replace("</t>", "").replace(
-                                "▁", "")
-                            # print(vocab)
-                            # if vocab not in appendControlNodesString and seq.tags[loc] == 1 and vocab != ".":
-                            test_jdbc_vocab.add(vocab)
-                            seq_len += 1
+        # test_jdbc_vocab = set()
+        # for i, project in enumerate(test_project):
+        #
+        #     print(project)
+        #
+        #     for test_seq in train_data_all[project]:
+        #         if 1 in test_seq.input_ids:
+        #             # if project == "SwingBasic":
+        #             #     print(1111)
+        #             continue
+        #         # test_data[project].append(test_seq)
+        #         if project in test_project:
+        #             # for seq in test_seq.input_ids:
+        #             seq_len = 0
+        #             for loc, word_len in enumerate(test_seq.word_index):
+        #                 for _ in range(word_len):
+        #                     vocab = tokenizer.convert_id_to_token(test_seq.input_ids[seq_len]).replace("</t>", "").replace(
+        #                         "▁", "")
+        #                     # print(vocab)
+        #                     # if vocab not in appendControlNodesString and seq.tags[loc] == 1 and vocab != ".":
+        #                     test_jdbc_vocab.add(vocab)
+        #                     seq_len += 1
 
 
         for project_name in project_list:
@@ -343,32 +361,32 @@ if __name__ == '__main__':
             train_sample_count = 1
             test_sample_domain_count = 0
             test_sample_count = 1
-            for seq in select_train_data:
-                train_sample_domain_count += seq.tags.count(1)
-                train_sample_count += len(seq.input_ids)
-
-                seq_len_1 = 0
-                for loc, word_len in enumerate(seq.word_index):
-                    for _ in range(word_len):
-                        vocab = tokenizer.convert_id_to_token(seq.input_ids[seq_len_1]).replace("</t>", "").replace(
-                            "▁", "")
-                        # print(vocab)
-                        # if vocab not in appendControlNodesString and seq.tags[loc] == 1 and vocab != ".":
-                        pretrain_vocab.add(vocab)
-                        seq_len_1 += 1
+            # for seq in select_train_data:
+            #     train_sample_domain_count += seq.tags.count(1)
+            #     train_sample_count += len(seq.input_ids)
+            #
+            #     seq_len_1 = 0
+            #     for loc, word_len in enumerate(seq.word_index):
+            #         for _ in range(word_len):
+            #             vocab = tokenizer.convert_id_to_token(seq.input_ids[seq_len_1]).replace("</t>", "").replace(
+            #                 "▁", "")
+            #             # print(vocab)
+            #             # if vocab not in appendControlNodesString and seq.tags[loc] == 1 and vocab != ".":
+            #             pretrain_vocab.add(vocab)
+            #             seq_len_1 += 1
             # a = pretrain_vocab | train_vocab
-            b = test_jdbc_vocab & pretrain_vocab
-            print("coverage:",len(b)/len(test_jdbc_vocab))
-            print(train_sample_domain_count)
-            print("domain_percent:",train_sample_domain_count/train_sample_count)
-            for project,seq in test_data.items():
-                for one_seq in seq:
-                    test_sample_domain_count += one_seq.tags.count(1)
-                    test_sample_count += len(one_seq.input_ids)
-            print(test_sample_domain_count)
-            print("test_domain_percent:", test_sample_domain_count / test_sample_count)
+            # b = test_jdbc_vocab & pretrain_vocab
+            # print("coverage:",len(b)/len(test_jdbc_vocab))
+            # print(train_sample_domain_count)
+            # print("domain_percent:",train_sample_domain_count/train_sample_count)
+            # for project,seq in test_data.items():
+            #     for one_seq in seq:
+            #         test_sample_domain_count += one_seq.tags.count(1)
+            #         test_sample_count += len(one_seq.input_ids)
+            # print(test_sample_domain_count)
+            # print("test_domain_percent:", test_sample_domain_count / test_sample_count)
             model_lstm = None
-            classifier = Classifier(ft_model, model_lstm, args, tokenizer.vocab, word_vocab, None, tokenizer)
+            classifier = Classifier(ft_model, model_lstm, args, tokenizer.vocab, None, None, tokenizer)
             print("train data num:",len(select_train_data))
             acc, perplexitys, ep = classifier.train(select_train_data, select_dev_data, test_data, args.device, args, i,search_word_dict)
             # ACC += acc

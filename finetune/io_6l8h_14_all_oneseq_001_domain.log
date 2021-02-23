@@ -1,0 +1,28 @@
+nohup: ignoring input
+11668 12504576 11492934 0.0115337243807592
+pretrained model loaded
+--------------------------------------
+pgjdbc-ng
+clickhouse4j
+StoreManager
+pgjdbc
+jdbc-recipes
+openGauss-connector-jdbc
+Game-Lease
+JDBC
+SoftwareSystemOfDlpu
+starschema-bigquery-jdbc
+dev_domain_seq_num: 942
+train data all num: 19538
+domain_seq_num: 3925
+99
+----------------------------------------
+99
+data stored
+train data num: 99
+start train
+/opt/conda/conda-bld/pytorch_1591914886554/work/torch/csrc/utils/python_arg_parser.cpp:756: UserWarning: This overload of addcmul_ is deprecated:
+	addcmul_(Number value, Tensor tensor1, Tensor tensor2)
+Consider using one of the following signatures instead:
+	addcmul_(Tensor tensor1, Tensor tensor2, *, Number value)
+942

@@ -28,10 +28,35 @@ cd finetune
 python -u train.py --epoch 15 --lr 2e-3 --weight_decay 1e-8  --batch_size 8 --sample {sample ratio} --max_seq_len 512 --device_index 0 --k 10 --is_save False --boundary {beam size}
 ```
 #### baseline
+```
+cd lstm
+```
+lstm baseline training
 
 ```
+python train.py --epoch 30 --lr 5e-3 --weight_decay 1e-8 --hidden_size 128 --batch_size 300 --num_layers 2 --sample {sample ratio} --max_seq_len 128 --device_index 1 --k 10 --boundary 20 --is_save True --mode pretrain
 ```
 
+lstm baseline test
+
+```
+python train.py --epoch 1 --sample {sample ratio} --max_seq_len 128 --device_index 1 --k 10 --boundary 20 --is_save False --mode train
+```
+
+```
+cd ngram
+```
+ngram baseline training
+
+```
+python train_ngram_baseline.py --mode pretrain --device_index 1 --sample {sample ratio} --epoch 30 --batch_size 10000 --lr 5e-3 --weight_decay 1e-8 --max_seq_len 128 --is_save True --domain jdbc
+```
+
+ngram baseline test
+
+```
+python train_ngram_baseline.py --mode fine_tune --device_index 1 --sample {sample ratio} --epoch 1 --batch_size 100  --max_seq_len 128 --is_save False --domain jdbc
+```
 ## Contributing
 
 PRs accepted.
